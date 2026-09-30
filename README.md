@@ -33,6 +33,54 @@ Installed, it is live immediately: the Host row activates through HMR and the
 browser row registers into the sidebar slot as soon as the page's module graph
 updates.
 
+### Removing it
+
+```sh
+dsh plugin --profile <profile> remove dsh-session-delete-plugin
+```
+
+`dsh plugin` forwards its arguments to the profile's package manager verbatim
+(`add`, `remove`, `why`, …), so removal runs on the same channel as installation.
+The package and its `dsh.profile.bundles` entry go; sessions already deleted stay
+deleted, and nothing else the profile owns is touched.
+
+## Compatibility
+
+| | Declared in | Value |
+|---|---|---|
+| Node.js | `engines.node` and `dsh.compatibility.node` | `>=20` |
+| Harness | `dsh.compatibility.dshReleases` | `0.2.0-rc.2` → `compatible` |
+
+Only that one Harness release is marked `compatible`. Every other release is left
+**unstated**, which the Store's rules read as unknown — the honest answer, since
+no other release has been exercised. What makes a wider range *plausible* is the
+plugin's zero `@deepseek-ai/*` import: it reaches the Host through slots, the
+command registry, declared events and the on-disk layout, so a release that keeps
+those keeps working. Plausible is not tested, so it is not claimed.
+
+## Permissions
+
+Declared as they are rather than as they would be convenient: this plugin's whole
+job is destructive, and a clean capability report would be a lie.
+
+| Kind | Used | What that means here |
+|---|---|---|
+| Files | **yes** | removes the session log directory and its cached projection under `<DSH_HOME>`, and rewrites `<DSH_HOME>/registry.json` to drop the id from `archivedSessionIds` / `pinnedSessionIds`. Nothing outside `<DSH_HOME>/sessions` and `<DSH_HOME>/storages` is read or written, and every removal target is re-checked to sit strictly inside those roots. |
+| Network | no | nothing is fetched, uploaded, or reported anywhere. |
+| Commands | no | no process is spawned and no shell is invoked. |
+| Credentials | no | no token, key, cookie, or password is read. The single environment read is `DSH_HOME`, a **directory path** used to locate the Harness home; it carries no secret. |
+
+Two notes for anyone auditing this automatically:
+
+- A scanner will flag the first row, and it should: a plugin that deletes
+  directories is high-capability whatever its manifest claims, and the Store
+  policy treats a `files` signal as grounds to withhold automatic approval. That
+  is the correct outcome, and this plugin does not present itself otherwise.
+- A scanner may additionally read the `DSH_HOME` lookup as a *credentials*
+  signal. That is a false positive on a path lookup. It stays because honouring
+  `DSH_HOME` is what lets the plugin find a non-default Harness home; removing it
+  would make the plugin delete from the wrong place, not make it safer.
+
 ## What actually gets deleted
 
 | Target | Path |
@@ -283,6 +331,7 @@ covers the box, so a later edit that shrinks the icon fails the suite.
 | Client contract is correct | 30/30 checks pass in `tests/check-client.mjs`, including a replay of the renderer's `runInject`, the `{ ok, value }` envelope, the service-inject list, the icon geometry and rendering the dialog with the row unmounted |
 | **The row renders in the menu** | **confirmed by the user**, in context with 置顶会话 / 重命名 / 分叉会话 / 归档会话 |
 | **The dialog and a real deletion** | **confirmed by the user** on a live page: the dialog opened, listed what would be removed, the confirmed deletion succeeded, the notice appeared and the sidebar row went with it. |
+| Uninstall | `dsh plugin --profile <p> remove <pkg>` forwards verbatim to the profile's package manager (`dsh/lib/bin.js:116`). The round trip has **not** been exercised end to end on a disposable profile. |
 
 If the confirmation dialog reports *"The Harness command channel is unavailable"*,
 that means `ctx.get('remote.commands')` was absent from this page's composition —

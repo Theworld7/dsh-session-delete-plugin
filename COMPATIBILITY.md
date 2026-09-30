@@ -232,6 +232,13 @@ directories looking for a directory named after the session id, rather than
 recomputing the Harness's `projectKey(cwd)` encoding — so a change to that
 encoding degrades to `not-found`, not to deleting the wrong directory.
 
+The root is resolved in `resolveRoot` in this order: this plugin's own
+`sessionsRoot` / `storagesRoot` config, then `process.env.DSH_HOME`, then
+`~/.dsh`. The environment read is what lets the plugin respect a relocated
+Harness home. A catalog scanner may report it as a *credentials* signal; it is a
+directory-path lookup and carries no secret (README → Permissions). Removing it
+would not make the plugin safer, only wrong on a non-default home.
+
 The `session_projcache/sessions/<id>.json` cache is a pure cache: removing it is
 safe, and leaving it behind is also harmless (the Harness reconciles it).
 
@@ -259,3 +266,15 @@ A renamed token degrades the appearance; it cannot break rendering.
 - The Client bundle is the module-loader factory form:
   `window.__ModuleLoader__.load({ id, factory(require) { ... } })`, with `id`
   equal to the package name.
+- `dsh.compatibility` → `{ node, dshReleases }`. `dshReleases` maps each Harness
+  release this build was actually exercised on to `compatible` / `incompatible`.
+  Only exercised releases are listed; an unlisted release is unknown by design,
+  not by omission. **Re-check this on every Harness upgrade**: a release that
+  changes any contract in sections 1–5 must be moved to `incompatible` or dropped,
+  never left behind as a stale claim. `engines.node` and `dsh.compatibility.node`
+  carry the same floor (`>=20`) and must move together.
+- `repository`, `license` and `files` are read by catalog automation, not by the
+  Harness: the Store matches `repository.url` against the canonical GitHub
+  repository, matches `license` against the repository's license metadata, and
+  requires `files` to be explicit. `LICENSE` is listed in `files` so the
+  distributed artifact carries the same license as the manifest.

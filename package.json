@@ -4,6 +4,21 @@
   "private": true,
   "type": "module",
   "description": "Adds a permanent \"Delete session\" action to the DeepSeek Harness session context menu.",
+  "keywords": [
+    "dsh-plugin",
+    "dsh",
+    "deepseek-harness",
+    "session",
+    "delete-session"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Theworld7/dsh-session-delete-plugin.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "icon": "./icon.svg",
   "exports": {
     ".": "./src/index.js",
@@ -17,12 +32,19 @@
     "locale",
     "icon.svg",
     "cordis.patch.yml",
-    "COMPATIBILITY.md"
+    "COMPATIBILITY.md",
+    "LICENSE"
   ],
   "scripts": {
     "test": "node tests/check-eraser.mjs && node tests/check-client.mjs"
   },
   "dsh": {
+    "compatibility": {
+      "node": ">=20",
+      "dshReleases": {
+        "0.2.0-rc.2": "compatible"
+      }
+    },
     "bundle": {
       "patch": "./cordis.patch.yml"
     },

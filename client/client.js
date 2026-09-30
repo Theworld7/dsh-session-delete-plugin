@@ -309,21 +309,22 @@ window.__ModuleLoader__.load({
      *
      * Every colour is a `--dsw-alias-*` theme token, which is the whole styling
      * contract the Client exposes: a token that is renamed degrades the
-     * appearance but can never break rendering. Geometry that has no token
-     * (widths, radii, spacing) is copied from the host's own menu and dialog so
-     * the row and the confirmation sit in the same visual system.
+     * appearance but can never break rendering. Radii use the host's own
+     * `--dsw-radius-*` scale — the one its menu rows are drawn with. Geometry
+     * that has no token at all (widths, spacing) is copied from the host's menu
+     * and dialog so the row and the confirmation sit in the same visual system.
      */
     const CSS = `
 .sd-item-wrap { position: relative; }
 .sd-separator { height: 0.5px; margin: 3px 2px; background: var(--dsw-alias-border-l2); }
 .sd-item {
   display: flex; align-items: center; gap: 6px; width: 100%;
-  min-height: 34px; padding: 6px 8px; border: none; border-radius: 8px;
+  min-height: 34px; padding: 6px 8px; border: none; border-radius: var(--dsw-radius-md);
   background: transparent; cursor: pointer; font-size: 13px; line-height: 20px;
   color: var(--dsw-alias-state-error-primary); text-align: left;
 }
-.sd-item:hover:not(:disabled) { background: var(--dsw-alias-bg-layer-2); }
-.sd-item:focus-visible:not(:disabled) { background: var(--dsw-alias-bg-layer-2); outline: none; }
+.sd-item:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover-danger); }
+.sd-item:focus-visible:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover-danger); outline: none; }
 .sd-item:disabled { opacity: 0.4; cursor: not-allowed; }
 .sd-icon { display: inline-flex; flex: none; width: 14px; height: 14px; align-items: center; justify-content: center; }
 .sd-icon svg { width: 14px; height: 14px; }
@@ -394,41 +395,48 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * A trash glyph in the host's own icon geometry.
+     * The host's own trash artwork, reproduced verbatim.
      *
-     * The host draws its menu icons on `viewBox="0 0 16 16"` with the artwork
-     * filling that box edge to edge, then renders them at 14px with a 1px stroke
-     * (`IconArchiveOutlineRegular`) — but at 14px a 1px stroke reads thinner than
-     * the neighbouring glyphs, so this uses the host's medium weight
-     * (`ICON_MEDIUM_STROKE`, 1.3) instead.
+     * The Harness draws `IconTrashOutlineRegular` for a destructive menu row —
+     * its workspace menu pairs "Rename" (`IconEditOutlineRegular`) with "Delete"
+     * (`IconTrashOutlineRegular`, `danger: true`) on this very surface. This
+     * plugin cannot import that component: `dsh-client-ui-primitives` is a
+     * `@deepseek-ai/*` module, and depending on nothing but the published
+     * contract is the whole point. So the geometry is copied instead, to the
+     * last control point.
      *
-     * A glyph whose paths occupy only part of its viewBox looks smaller than its
-     * neighbours at the same nominal size. The outer geometry here is therefore
-     * centred on ±7.5 so that the drawn extent — path extent plus half the stroke
-     * on each side — is exactly the full 16 units.
+     * Matching the family means matching all of it, which an earlier hand-drawn
+     * version did not:
+     * - a uniform 1px stroke, not the medium 1.3 — every `*OutlineRegular` glyph
+     *   in that menu, and `IconTrashOutlineRegular` itself, is 1;
+     * - no background plate. The `opacity: 0.1` silhouette belonged to the
+     *   filled `*FillRegular` family, which this menu does not use;
+     * - no `stroke-linecap`/`stroke-linejoin` override. The rounding comes from
+     *   the paths' own curves (`C` commands on the handle and the body's base);
+     *   forcing `round` on straight segments is what made the old lid and ribs
+     *   read as a different, blunter set.
      */
     function TrashIcon() {
       return h('svg', {
         viewBox: '0 0 16 16', width: 14, height: 14,
         fill: 'none', xmlns: 'http://www.w3.org/2000/svg',
-        'aria-hidden': true, strokeWidth: 1.3,
+        'aria-hidden': true, strokeWidth: 1,
       },
-      // Soft silhouette, the same treatment the host gives its own filled icons.
+      // Lid.
+      h('path', { d: 'M1.28149 3.88831H14.7187', stroke: 'currentColor' }),
+      // Handle and the stand-off above the lid.
       h('path', {
-        d: 'M0.5 3.5L15.5 3.5L15.5 15.5L0.5 15.5Z',
-        fill: 'currentColor', opacity: 0.1, stroke: 'none',
+        d: 'M5.41602 3.88833V2.47962C5.41602 2.29282 5.52492 2.11366 5.71876 1.98157C5.9126 1.84948 6.17551 1.77527 6.44964 1.77527H9.55053C9.82466 1.77527 10.0876 1.84948 10.2814 1.98157C10.4753 2.11366 10.5842 2.29282 10.5842 2.47962V3.88833',
+        stroke: 'currentColor',
       }),
-      // Lid, handle and the two ribs — one-centre-unit geometry, snapped to the
-      // half-pixel grid so a 1.3 stroke stays crisp.
+      // Body — tapers inward, rounded base.
       h('path', {
-        d: 'M0.5 3.5L15.5 3.5M5.5 3.5L5.5 1.5L10.5 1.5L10.5 3.5M5.5 7L5.5 12.5M10.5 7L10.5 12.5',
-        stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round',
+        d: 'M2.57349 3.88831L3.19366 13.2943C3.21937 13.5502 3.33952 13.7872 3.53065 13.9593C3.72178 14.1313 3.97016 14.2259 4.22729 14.2246H11.7728C12.0299 14.2259 12.2783 14.1313 12.4694 13.9593C12.6605 13.7872 12.7807 13.5502 12.8064 13.2943L13.4266 3.88831',
+        stroke: 'currentColor',
       }),
-      // Body.
-      h('path', {
-        d: 'M2.5 3.5L2.5 14.5L13.5 14.5L13.5 3.5',
-        stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round',
-      }))
+      // Ribs.
+      h('path', { d: 'M6.44946 6.98926V11.1238', stroke: 'currentColor' }),
+      h('path', { d: 'M9.55054 6.98926V11.1238', stroke: 'currentColor' }))
     }
 
     /** The confirmation dialog, rendered while a request is pending. */

@@ -609,6 +609,24 @@ test('applying installs one owned stylesheet using only theme tokens', () => {
   }
 })
 
+test('the row wears the host menu danger treatment, not a generic hover', () => {
+  const { document, head } = fakeDom()
+  globalThis.document = document
+  loadBundle({ react: reactStub() }).apply(clientContext().ctx)
+  const css = head.children.find((node) => node.tagName === 'STYLE').textContent
+
+  // The host's own destructive menu rows (Menu.module.css `.danger`) fill with
+  // `--dsw-alias-interactive-bg-hover-danger` in both states and take
+  // `--dsw-radius-md`. A generic surface fill or a literal radius reads as a
+  // different control sitting in the same menu.
+  const dangerFill = 'background: var(--dsw-alias-interactive-bg-hover-danger)'
+  assert.equal(
+    css.split(dangerFill).length - 1, 2,
+    'hover and focus-visible must both take the host danger fill',
+  )
+  assert.match(css, /\.sd-item \{[^}]*border-radius: var\(--dsw-radius-md\)/)
+})
+
 test('the registered row component is the crash-safe wrapper, not the row itself', () => {
   globalThis.document = fakeDom().document
   const harness = clientContext()
@@ -692,7 +710,7 @@ test('the fault row is available to report a render failure', () => {
   assert.equal(text.props.children[0], '删除会话菜单项无法显示')
 })
 
-test('the menu icon fills its viewBox the way the host glyphs do', () => {
+test('the menu icon matches the host icon family it sits among', () => {
   globalThis.document = fakeDom().document
   const mount = mountPlugin()
   const elements = flatten(mount.react.currentTree())
@@ -702,33 +720,37 @@ test('the menu icon fills its viewBox the way the host glyphs do', () => {
   assert.equal(svg.props.viewBox, '0 0 16 16', 'the host draws icons on a 16x16 viewBox')
   assert.equal(svg.props.width, 14, 'the host renders menu icons at 14px')
 
-  // The glyph must fill the box. A medium stroke is used instead of the host's
-  // 1px one because a 1px stroke reads thin at 14px; the extent below is measured
-  // with half the stroke included, which is how the icon actually presents.
-  const stroke = Number(svg.props.strokeWidth)
-  assert.ok(stroke > 0 && stroke <= 2, `unexpected stroke width ${stroke}`)
+  // The artwork is the host's `IconTrashOutlineRegular`, which the Harness itself
+  // draws for a destructive menu row. Every `*OutlineRegular` glyph on this
+  // surface strokes at 1px; the 1.3 medium weight this row once used belongs to a
+  // different family and reads heavier than its neighbours.
+  assert.equal(Number(svg.props.strokeWidth), 1, 'the outline family draws at 1px')
 
-  const extent = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
-  for (const element of elements.filter((entry) => entry.type === 'path')) {
-    // Only absolute move/line segments are used, so each coordinate pair is
-    // directly comparable without tracking the current point.
-    const coordinates = (String(element.props?.d ?? '').match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number)
-    for (let index = 0; index + 1 < coordinates.length; index += 2) {
-      extent.minX = Math.min(extent.minX, coordinates[index])
-      extent.maxX = Math.max(extent.maxX, coordinates[index])
-      extent.minY = Math.min(extent.minY, coordinates[index + 1])
-      extent.maxY = Math.max(extent.maxY, coordinates[index + 1])
+  const paths = elements.filter((entry) => entry.type === 'path')
+  assert.equal(paths.length, 5, 'the host artwork is five paths')
+
+  for (const path of paths) {
+    // Outline glyphs are stroke-only. The translucent plate (`fill` + `opacity`)
+    // belongs to the filled `*FillRegular` family and is exactly what made this
+    // row look like it came from somewhere else.
+    assert.equal(path.props.fill, undefined, 'outline glyphs carry no fill')
+    assert.equal(path.props.opacity, undefined, 'outline glyphs carry no plate')
+    assert.equal(path.props.stroke, 'currentColor', 'the path takes the row colour')
+  }
+
+  // Staying inside the viewBox is what keeps the glyph the same size as the
+  // shipped ones at the same nominal 14px. Coordinates are read straight from the
+  // path data, so bezier control points count too — they bound the curve.
+  for (const path of paths) {
+    const coordinates = (String(path.props.d ?? '').match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number)
+    assert.ok(coordinates.length > 0, 'expected path coordinates')
+    for (const value of coordinates) {
+      assert.ok(
+        value >= 0 && value <= 16,
+        `coordinate ${value} falls outside the 16x16 viewBox`,
+      )
     }
   }
-  assert.ok(Number.isFinite(extent.minX), 'expected path coordinates')
-  const span = Math.max(
-    extent.maxX - extent.minX + stroke,
-    extent.maxY - extent.minY + stroke,
-  )
-  assert.ok(
-    span >= 15.5,
-    `the drawn glyph spans only ${span.toFixed(1)} of 16 units, so it will look smaller than the shipped icons`,
-  )
 })
 
 await test('clicking the row opens a dialog and asks the Host for the plan', async () => {

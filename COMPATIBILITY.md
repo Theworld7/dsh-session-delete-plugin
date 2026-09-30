@@ -252,9 +252,32 @@ Only tokens the Client `Theme` provider lists:
 
 `--dsw-alias-bg-base`, `--dsw-alias-bg-layer-1`, `--dsw-alias-bg-layer-2`,
 `--dsw-alias-border-l1`, `--dsw-alias-border-l2`, `--dsw-alias-label-primary`,
-`--dsw-alias-label-secondary`, `--dsw-alias-state-error-primary`.
+`--dsw-alias-label-secondary`, `--dsw-alias-state-error-primary`,
+`--dsw-alias-interactive-bg-hover-danger`.
+
+Plus one radius from the host's scale, `--dsw-radius-md`, which is the token the
+host's own menu rows are drawn with (`Menu.module.css` `.item`). Its siblings are
+`--dsw-radius-sm` 8px / `md` 12px / `lg` 16px / `xl` 20px in the light theme.
 
 A renamed token degrades the appearance; it cannot break rendering.
+
+### Tokens that look right but are not
+
+The row is a *destructive* menu item, and the host gives that case its own
+treatment (`Menu.module.css` §`.danger`):
+
+| | Host `.danger` row | Do not use |
+|---|---|---|
+| hover / focus fill | `--dsw-alias-interactive-bg-hover-danger` | `--dsw-alias-bg-layer-2` |
+| radius | `--dsw-radius-md` (12px) | a literal `8px` |
+
+`--dsw-alias-bg-layer-2` resolves to `#fff` in the light theme — the same colour
+as the menu surface — so as a hover fill it reads as *no hover feedback at all*.
+That is how the row looked wrong while being "valid tokens only".
+
+**Check after an upgrade:** confirm `Menu.module.css` still carries a `.danger`
+rule and the two tokens above; if the host renames either, this row silently
+stops matching its neighbours.
 
 ## 8. Bundle manifest
 

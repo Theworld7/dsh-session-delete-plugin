@@ -1,0 +1,4 @@
+{
+  "title": "Delete Session",
+  "description": "Adds a permanent \"Delete session\" action to a session's \"...\" menu. It removes the session log, its cached projection and its archived/pinned registry entries from disk."
+}

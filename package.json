@@ -1,0 +1,41 @@
+{
+  "name": "dsh-session-delete-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Adds a permanent \"Delete session\" action to the DeepSeek Harness session context menu.",
+  "icon": "./icon.svg",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./client/client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "src",
+    "client",
+    "locale",
+    "icon.svg",
+    "cordis.patch.yml",
+    "COMPATIBILITY.md"
+  ],
+  "scripts": {
+    "test": "node tests/check-eraser.mjs && node tests/check-client.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-workspace"
+      ]
+    }
+  },
+  "meta": {
+    "title": "Delete Session",
+    "description": "Permanently deletes a session from the session \"...\" menu, including its log, projection cache and workspace references."
+  }
+}

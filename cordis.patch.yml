@@ -1,0 +1,26 @@
+# Bundle layer for dsh-session-delete-plugin.
+#
+# One Host row. The Client half needs no row: it is declared by `dsh.client` in
+# package.json and served by the Harness's Client module loader.
+#
+# `config` holds every knob this plugin has. To override it, target the id
+# `session-delete` from the profile's own cordis.patch.yml or from a --patch
+# overlay. A patch row REPLACES the whole `config` value, so restate every key
+# you still want.
+- insert:
+    - id: session-delete
+      name: 'dsh-session-delete-plugin'
+      config:
+        # Session log root. Empty derives it from $DSH_HOME, then ~/.dsh.
+        sessionsRoot: ''
+        # Storage root holding the projection cache. Empty derives it the same way.
+        storagesRoot: ''
+        # Refuse to delete a Session that is open in this Harness.
+        blockActive: true
+        # Stop an open Session's running work before removing it, through the
+        # Harness's own `workspace/session-stop` hook.
+        stopActivity: true
+        # Drop the Session from the registry-global archived and pinned sets.
+        cleanWorkspaceRegistry: true
+        # Remove the Session's cached projection.
+        cleanProjectionCache: true
